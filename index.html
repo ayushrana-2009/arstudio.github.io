@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BINGMAX | Premium Streaming</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        /* === CSS VARIABLES === */
+        :root {
+            --bg-color: #030305;
+            --text-main: #ffffff;
+            --text-muted: #8892b0;
+            --accent-1: #00f2fe;
+            --accent-2: #4facfe;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-hover: rgba(255, 255, 255, 0.2);
+        }
+
+        /* === RESET === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+            perspective: 1200px; 
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* === 3D CANVAS === */
+        #webgl-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            opacity: 0.8;
+        }
+
+        /* === NAVBAR === */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 25px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: linear-gradient(to bottom, rgba(3,3,5,0.9) 0%, rgba(3,3,5,0) 100%);
+            backdrop-filter: blur(4px);
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: 900;
+            background: linear-gradient(90deg, var(--accent-1), #b92b27);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 3px;
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            gap: 40px;
+        }
+
+        .nav-links li a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links li a:hover {
+            color: var(--text-main);
+        }
+
+        /* === HERO SECTION === */
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 8%;
+            pointer-events: none;
+        }
+
+        .hero h1 {
+            font-size: 5rem;
+            line-height: 1;
+            font-weight: 900;
+            margin-bottom: 20px;
+            letter-spacing: -2px;
+            /* Animated Gradient Text */
+            background: linear-gradient(270deg, #fff, var(--accent-1), var(--accent-2), #fff);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 8s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 550px;
+            margin-bottom: 40px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 20px;
+            pointer-events: auto;
+        }
+
+        .btn {
+            padding: 16px 45px;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: var(--text-main);
+            color: var(--bg-color);
+            border: none;
+            box-shadow: 0 10px 30px rgba(255,255,255,0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 15px 35px rgba(255,255,255,0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-main);
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-main);
+            transform: translateY(-5px);
+        }
+
+        /* === TRENDING SECTION & 3D CARDS === */
+        .trending {
+            padding: 60px 8% 120px;
+        }
+
+        .trending h2 {
+            font-size: 2rem;
+            margin-bottom: 50px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 40px;
+        }
+
+        .card {
+            position: relative;
+            height: 420px;
+            border-radius: 24px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 25px;
+            cursor: pointer;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            overflow: hidden;
+            
+            /* 3D Engine for CSS */
+            transform-style: preserve-3d;
+            transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1);
+            transition: transform 0.15s ease-out, border 0.3s ease;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, rgba(0,0,0,0) 20%, rgba(0,0,0,0.9) 100%);
+            z-index: 1;
+        }
+
+        /* High-Quality Placeholder Posters */
+        .card:nth-child(1) { background: url('https://images.unsplash.com/photo-1618336753974-aae8e04506aa?auto=format&fit=crop&w=800&q=80') center/cover; }
+        .card:nth-child(2) { background: url('https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=800&q=80') center/cover; }
+        .card:nth-child(3) { background: url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=800&q=80') center/cover; }
+        .card:nth-child(4) { background: url('https://images.unsplash.com/photo-1614729939124-032f0b56c9ce?auto=format&fit=crop&w=800&q=80') center/cover; }
+
+        .card-content {
+            position: relative;
+            z-index: 2;
+            /* 3D Pop Out Effect */
+            transform: translateZ(40px);
+            transition: transform 0.3s ease;
+        }
+
+        .card h3 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+
+        .card p {
+            color: var(--accent-1);
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        /* The 3D Play Button Overlay */
+        .play-btn {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%) translateZ(0px) scale(0);
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0;
+        }
+
+        .play-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: #fff;
+            margin-left: 4px; /* visually center play triangle */
+        }
+
+        /* Hover States for Cards */
+        .card:hover .play-btn {
+            opacity: 1;
+            /* Pops the button out in Z-space while scaling it up */
+            transform: translate(-50%, -50%) translateZ(80px) scale(1); 
+        }
+
+        .card:hover .card-content {
+            transform: translateZ(60px);
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 3.5rem; }
+            .nav-links { display: none; }
+            .btn-group { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="webgl-container"></div>
+
+    <nav>
+        <div class="logo">BINGMAX</div>
+        <ul class="nav-links">
+            <li><a href="#">Originals</a></li>
+            <li><a href="#">Movies</a></li>
+            <li><a href="#">Series</a></li>
+            <li><a href="#">My List</a></li>
+        </ul>
+    </nav>
+
+    <section class="hero">
+        <h1>Redefine<br>Your Reality.</h1>
+        <p>Experience the next generation of streaming. Spatial audio, 8K resolution, and interactive storylines await you in the BingMax universe.</p>
+        <div class="btn-group">
+            <button class="btn btn-primary">Start Free Trial</button>
+            <button class="btn btn-secondary">Watch Trailer</button>
+        </div>
+    </section>
+
+    <section class="trending">
+        <h2>Trending This Week</h2>
+        <div class="grid">
+            <div class="card">
+                <div class="play-btn">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </div>
+                <div class="card-content">
+                    <h3>Neon Pulse</h3>
+                    <p>Cyberpunk Action • 98% Match</p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="play-btn">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </div>
+                <div class="card-content">
+                    <h3>Deep Void</h3>
+                    <p>Space Thriller • 95% Match</p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="play-btn">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </div>
+                <div class="card-content">
+                    <h3>Synthetica</h3>
+                    <p>Sci-Fi Drama • 92% Match</p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="play-btn">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </div>
+                <div class="card-content">
+                    <h3>The Horizon</h3>
+                    <p>Post-Apocalyptic • 89% Match</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        /* =========================================
+           1. THREE.JS: PREMIUM PARTICLE SPHERE
+        ========================================= */
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 40;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Performance optimization
+        container.appendChild(renderer.domElement);
+
+        // Create a massive sphere out of tiny glowing particles
+        const geometry = new THREE.SphereGeometry(25, 64, 64);
+        
+        // Manipulate geometry to look organic/scattered
+        const particlesCount = geometry.attributes.position.count;
+        const posArray = geometry.attributes.position.array;
+        for(let i = 0; i < particlesCount * 3; i++) {
+            // Randomly offset points to create a "dust/nebula" effect rather than a perfect sphere
+            posArray[i] += (Math.random() - 0.5) * 1.5;
+        }
+
+        const material = new THREE.PointsMaterial({
+            size: 0.08,
+            color: 0x00f2fe,
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending // Gives that glowing screen effect
+        });
+
+        const sphere = new THREE.Points(geometry, material);
+        // Move it slightly off-center for a better layout composition
+        sphere.position.x = 15; 
+        scene.add(sphere);
+
+        // Mouse tracking for parallax
+        let mouseX = 0;
+        let mouseY = 0;
+        let targetX = 0;
+        let targetY = 0;
+        const windowHalfX = window.innerWidth / 2;
+        const windowHalfY = window.innerHeight / 2;
+
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX - windowHalfX);
+            mouseY = (event.clientY - windowHalfY);
+        });
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+
+            // Smoothly interpolate target rotation
+            targetX = mouseX * 0.001;
+            targetY = mouseY * 0.001;
+
+            // Auto-rotation + Mouse interaction
+            sphere.rotation.y += 0.002;
+            sphere.rotation.x += 0.0005;
+            
+            // Add a subtle wave motion to the sphere as a whole
+            sphere.position.y = Math.sin(elapsedTime * 0.5) * 2;
+
+            // Camera Parallax (Lerping for smoothness)
+            camera.position.x += (mouseX * 0.015 - camera.position.x) * 0.05;
+            camera.position.y += (-mouseY * 0.015 - camera.position.y) * 0.05;
+            camera.lookAt(scene.position);
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        /* =========================================
+           2. REFINED 3D DOM CARDS (GLASSMORPHISM)
+        ========================================= */
+        const cards = document.querySelectorAll('.card');
+
+        cards.forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left; 
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                // Max tilt is 12 degrees for a premium, heavy feel
+                const rotateX = ((y - centerY) / centerY) * -12; 
+                const rotateY = ((x - centerX) / centerX) * 12;
+
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+                card.style.borderColor = `var(--glass-hover)`;
+            });
+
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+                card.style.borderColor = `var(--glass-border)`;
+            });
+        });
+    </script>
+</body>
+</html>
